@@ -23,7 +23,7 @@
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "http://184.194.17.48:8080"
+      "apiUrl": "http://54.236.226.53:8080"
     }
   }
 }
