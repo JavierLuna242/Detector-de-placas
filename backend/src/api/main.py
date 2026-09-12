@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 import cv2
 import numpy as np
-import easyocr
+import pytesseract
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -28,9 +28,15 @@ if not _default_model.exists() and (BASE_DIR / "best.pt").exists():
     _default_model = BASE_DIR / "best.pt"
 
 MODEL_PATH = Path(os.getenv("MODEL_PATH", str(_default_model)))
-OCR_LANGS = os.getenv("OCR_LANGS", "en").split(",")
+OCR_LANGS = os.getenv("OCR_LANGS", "eng").split(",")
 CONF_THRESH = float(os.getenv("CONF_THRESH", 0.25))
 RETURN_IMAGE = True  # Devolver imagen con detecciones
+
+# Tesseract suele estar instalado en el sistema, no como dependencia de Python
+# Ruta por defecto en Ubuntu/Debian:
+# /usr/bin/tesseract
+if os.getenv("TESSERACT_CMD"):
+    pytesseract.pytesseract.tesseract_cmd = os.getenv("TESSERACT_CMD")
 
 # -------------------------
 # App init
@@ -52,9 +58,7 @@ logger.info("🔹 Cargando modelo YOLOv8 desde %s ...", MODEL_PATH)
 model = YOLO(str(MODEL_PATH))
 logger.info("✅ Modelo YOLOv8 cargado correctamente.")
 
-logger.info("🔹 Inicializando EasyOCR con idiomas: %s", OCR_LANGS)
-reader = easyocr.Reader(OCR_LANGS, gpu=False)
-logger.info("✅ EasyOCR listo.")
+logger.info("🔹 OCR configurado con Tesseract y idiomas: %s", OCR_LANGS)
 
 # -------------------------
 # Helpers de Preprocesamiento y OCR Mejorado
@@ -103,60 +107,50 @@ def preprocess_roi_variants(roi_bgr: np.ndarray) -> List[np.ndarray]:
 PLATE_REGEX = re.compile(r'([A-Z]{3}\d{3}|[A-Z]{3}\d{2}[A-Z]|[A-Z]{2}\d{4}|[A-Z]{3}\d{3}[A-Z]?)')
 
 def ocr_read_text_from_roi(roi_bgr: np.ndarray) -> Optional[str]:
-    """
-    Ejecuta EasyOCR con ordenamiento espacial y concatenación de fragmentos.
-    Reintenta con diferentes variantes de preprocesamiento hasta obtener un resultado válido.
-    """
+    """Lee texto de una ROI usando Tesseract con varias variantes de imagen."""
     try:
         if roi_bgr is None or roi_bgr.size == 0:
             return None
 
         variants = preprocess_roi_variants(roi_bgr)
-        allow_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
         best_text = None
         best_char_count = 0
 
         for img in variants:
-            results = reader.readtext(img, allowlist=allow_chars)
-            if not results:
-                continue
-
-            valid_items = []
-            for item in results:
-                bbox, text, conf = item[0], item[1], item[2]
-                clean_t = "".join(ch for ch in text if ch.isalnum()).upper()
-                if clean_t and conf >= 0.10:
-                    pts = np.array(bbox)
-                    y_center = float(np.mean(pts[:, 1]))
-                    x_left = float(np.min(pts[:, 0]))
-                    valid_items.append((y_center, x_left, clean_t, conf))
-
-            if not valid_items:
-                continue
-
-            min_y = min(it[0] for it in valid_items)
-            max_y = max(it[0] for it in valid_items)
-            height_span = max_y - min_y
-
-            if height_span < 25:
-                valid_items.sort(key=lambda it: it[1])
+            if isinstance(img, np.ndarray) and len(img.shape) == 2:
+                gray_img = img
             else:
-                valid_items.sort(key=lambda it: (round(it[0] / 30.0), it[1]))
+                gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img
 
-            combined_text = "".join(it[2] for it in valid_items)
+            # Tesseract suele funcionar mejor con texto en blanco sobre fondo negro.
+            _, binary = cv2.threshold(gray_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            texts = []
 
-            # Buscar primero si contiene un patrón estándar de placa (ej. MFY111, ABC123)
-            match = PLATE_REGEX.search(combined_text)
+            for config in [
+                "--psm 7 --oem 3",
+                "--psm 6 --oem 3",
+                "--psm 11 --oem 3",
+            ]:
+                try:
+                    text = pytesseract.image_to_string(binary, config=config, lang=OCR_LANGS[0])
+                except Exception:
+                    text = ""
+                cleaned = re.sub(r"[^A-Za-z0-9]", "", text).upper()
+                if cleaned:
+                    texts.append(cleaned)
+
+            if not texts:
+                continue
+
+            combined = "".join(texts)
+            match = PLATE_REGEX.search(combined)
             if match:
                 return match.group(1)
 
-            if len(combined_text) >= 3:
-                return combined_text
-
-            if len(combined_text) > best_char_count:
-                best_char_count = len(combined_text)
-                best_text = combined_text
+            if len(combined) >= 3:
+                if len(combined) > best_char_count:
+                    best_char_count = len(combined)
+                    best_text = combined
 
         if best_text:
             match = PLATE_REGEX.search(best_text)

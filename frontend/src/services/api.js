@@ -1,8 +1,9 @@
 // frontend/src/services/api.js
 
-const DEFAULT_API_URL = typeof window !== 'undefined' && localStorage.getItem('plate_api_url')
-  ? localStorage.getItem('plate_api_url')
-  : 'http://ec2-184-194-17-48.compute-1.amazonaws.com:8080';
+const DEFAULT_API_URL =
+  (typeof window !== 'undefined' && localStorage.getItem('plate_api_url')) ||
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+  'http://localhost:8080';
 
 export const getApiUrl = () => {
   return localStorage.getItem('plate_api_url') || DEFAULT_API_URL;

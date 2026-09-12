@@ -2,7 +2,7 @@ fastapi
 uvicorn
 ultralytics
 opencv-python-headless
-easyocr
+pytesseract
 numpy
 pillow
 python-multipart
