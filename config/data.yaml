@@ -1,5 +1,0 @@
-train: C:\Users\Usuario\Documents\Universidad\6 semestre\Ciencia de datos\Deployment-Mobile-Yolo\data\train\images
-val: C:\Users\Usuario\Documents\Universidad\6 semestre\Ciencia de datos\Deployment-Mobile-Yolo\data\val\images
-
-nc: 1
-names: ["plate"]
