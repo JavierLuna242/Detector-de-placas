@@ -9,7 +9,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.detectorplacas.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.detectorplacas.app",
@@ -23,7 +27,10 @@
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "http://52.3.161.151:8080"
+      "apiUrl": "http://52.3.161.151:8080",
+      "eas": {
+        "projectId": "8de3165d-6c94-45b9-bdab-26ea2f763959"
+      }
     }
   }
 }
