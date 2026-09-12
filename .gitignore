@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+runs/
+*.pt
+*.pem
+*.zip
+
+# Node / React Native
+**/node_modules/
+**/dist/
+**/.expo/
+**/.next/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

@@ -1,0 +1,23 @@
+{
+  "name": "detector-placas-react",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "tunnel": "npx localtunnel --port 3000",
+    "backend": "py -3.13 ../src/api/main.py",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^1.0.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.1.4"
+  }
+}
