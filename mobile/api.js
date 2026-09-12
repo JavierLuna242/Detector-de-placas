@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 
 export const getApiUrl = () => {
   const extra = Constants.expoConfig?.extra || {};
-  const configured = extra.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://<IP_EC2>:8080';
+  const configured = extra.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://52.3.161.151:8080';
   return configured.replace(/\/+$/, '');
 };
 
