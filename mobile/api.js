@@ -6,15 +6,20 @@ export const getApiUrl = () => {
   return configured.replace(/\/+$/, '');
 };
 
-export const detectPlate = async (imageUri) => {
+export const detectPlate = async (imageUri, fileLike = null) => {
   const apiUrl = getApiUrl();
-
   const formData = new FormData();
-  formData.append('file', {
-    uri: imageUri,
-    name: 'plate.jpg',
-    type: 'image/jpeg',
-  });
+
+  if (typeof File !== 'undefined' && fileLike instanceof File) {
+    formData.append('file', fileLike);
+  } else {
+    formData.append('file', {
+      uri: imageUri,
+      name: 'plate.jpg',
+      type: 'image/jpeg',
+      ...(fileLike || {}),
+    });
+  }
 
   const response = await fetch(`${apiUrl}/predict/`, {
     method: 'POST',
